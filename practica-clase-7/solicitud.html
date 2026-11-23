@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nueva solicitud · Práctica de Playwright</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 3rem auto; padding: 0 1rem; }
+    label { display: block; margin-top: 1rem; }
+    textarea, input, select, button { font: inherit; padding: .5rem; }
+    textarea { width: 90%; }
+    button { display: block; margin-top: 1rem; }
+    button[aria-pressed="true"] { background: #dff2df; border: 2px solid #206a20; }
+    [role="alert"] { color: #a31515; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Nueva solicitud</h1>
+    <label for="cuenta">Cuenta</label>
+    <input id="cuenta" type="email" value="ana@example.test" readonly>
+    <form id="solicitud" action="/solicitudes" method="post"
+          enctype="multipart/form-data">
+      <label for="motivo">Motivo</label>
+      <select id="motivo" name="motivo">
+        <option value="datos">Actualizar datos</option>
+        <option value="consulta">Hacer una consulta</option>
+      </select>
+      <label for="descripcion">Descripción</label>
+      <textarea id="descripcion" name="descripcion" required></textarea>
+      <label for="adjunto">Adjuntar nota</label>
+      <input id="adjunto" name="adjunto" type="file"
+             accept=".txt,text/plain" required>
+      <p>Archivo: <span data-testid="archivo-elegido">Sin archivo seleccionado</span></p>
+      <label><input id="copia" name="copia" type="checkbox"> Recibir copia por correo</label>
+      <button id="notificaciones" type="button" aria-pressed="false">Notificaciones</button>
+      <button id="enviar" type="submit" disabled>Enviar solicitud</button>
+    </form>
+    <p id="estado" role="status"></p>
+    <p id="error" role="alert" hidden></p>
+  </main>
+  <script>
+    const formulario = document.querySelector('#solicitud');
+    const adjunto = document.querySelector('#adjunto');
+    const enviar = document.querySelector('#enviar');
+    const elegido = document.querySelector('[data-testid="archivo-elegido"]');
+    const estado = document.querySelector('#estado');
+    const error = document.querySelector('#error');
+    const notificaciones = document.querySelector('#notificaciones');
+    let preparacion;
+
+    notificaciones.addEventListener('click', () => {
+      const activo = notificaciones.getAttribute('aria-pressed') === 'true';
+      notificaciones.setAttribute('aria-pressed', String(!activo));
+    });
+
+    adjunto.addEventListener('change', () => {
+      clearTimeout(preparacion);
+      enviar.disabled = true;
+      estado.textContent = '';
+      error.textContent = '';
+      error.hidden = true;
+      elegido.textContent = adjunto.files[0]?.name ?? 'Sin archivo seleccionado';
+      if (adjunto.files.length > 0) {
+        preparacion = setTimeout(() => { enviar.disabled = false; }, 400);
+      }
+    });
+
+    formulario.addEventListener('submit', async event => {
+      event.preventDefault();
+      enviar.disabled = true;
+      estado.textContent = 'Enviando…';
+      error.textContent = '';
+      error.hidden = true;
+      try {
+        const respuesta = await fetch('/solicitudes', {
+          method: 'POST',
+          body: new FormData(formulario),
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) {
+          estado.textContent = '';
+          error.textContent = datos.error;
+          error.hidden = false;
+          return;
+        }
+        estado.textContent = datos.mensaje;
+      } catch {
+        estado.textContent = '';
+        error.textContent = 'No se pudo enviar la solicitud';
+        error.hidden = false;
+      } finally {
+        enviar.disabled = adjunto.files.length === 0;
+      }
+    });
+  </script>
+</body>
+</html>

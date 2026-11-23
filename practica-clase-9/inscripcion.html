@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inscripción · Clase 9</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 3rem auto; padding: 0 1rem; }
+    label, button { display: block; margin-top: 1rem; }
+    input, button { font: inherit; padding: .5rem; }
+    [role="alert"] { color: #a31515; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Inscripción</h1>
+    <p>Curso: <span data-testid="curso"></span></p>
+    <p>Inscripciones guardadas: <span data-testid="total">—</span></p>
+    <p>Se aceptan edades enteras entre 18 y 120 inclusive.</p>
+    <form id="formulario">
+      <label for="edad">Edad</label>
+      <input id="edad" name="edad" type="number" step="1" required>
+      <button type="submit" disabled>Enviar inscripción</button>
+    </form>
+    <p id="confirmacion" role="status" hidden></p>
+    <p id="error" role="alert" hidden></p>
+  </main>
+  <script>
+    const nombre = decodeURIComponent(location.pathname.split('/')[2]);
+    const api = '/api/cursos/' + encodeURIComponent(nombre);
+    const formulario = document.querySelector('#formulario');
+    const edad = document.querySelector('#edad');
+    const enviar = document.querySelector('button');
+    const total = document.querySelector('[data-testid="total"]');
+    const confirmacion = document.querySelector('#confirmacion');
+    const error = document.querySelector('#error');
+    document.querySelector('[data-testid="curso"]').textContent = nombre;
+
+    function mostrarError(mensaje) {
+      error.textContent = mensaje;
+      error.hidden = false;
+    }
+
+    async function cargarCurso() {
+      try {
+        const respuesta = await fetch(api);
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error);
+        total.textContent = String(datos.cantidad);
+        enviar.disabled = false;
+      } catch (fallo) {
+        mostrarError(fallo.message);
+      }
+    }
+
+    formulario.addEventListener('submit', async event => {
+      event.preventDefault();
+      enviar.disabled = true;
+      confirmacion.hidden = true;
+      confirmacion.textContent = '';
+      error.hidden = true;
+      error.textContent = '';
+      try {
+        const respuesta = await fetch(api + '/inscripciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ edad: Number(edad.value) }),
+        });
+        const datos = await respuesta.json();
+        console.info(`Inscripción: edad=${edad.value}; HTTP=${respuesta.status}`);
+        if (!respuesta.ok) {
+          mostrarError(datos.error);
+          return;
+        }
+        total.textContent = String(datos.cantidad);
+        confirmacion.textContent = datos.mensaje;
+        confirmacion.hidden = false;
+      } catch {
+        mostrarError('No se pudo enviar la inscripción');
+      } finally {
+        enviar.disabled = false;
+      }
+    });
+
+    cargarCurso();
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+name: Playwright - clase 10
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v6
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias del proyecto
+        run: npm ci
+
+      - name: Instalar Chromium y sus bibliotecas
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar los dos tests
+        run: npx playwright test -c playwright.clase-10.config.ts
+
+      - name: Guardar reporte y resultados
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-clase-10
+          path: |
+            playwright-report/clase-10/
+            test-results/clase-10/
+          retention-days: 7
