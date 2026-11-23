@@ -24,7 +24,7 @@ export default defineConfig({
     { name: 'chromium', use: { browserName: 'chromium' } },
   ],
   webServer: {
-    command: 'node practica-clase-9/servidor.cjs correcto',
+    command: 'node practica-clase-9/servidor.cjs defecto',
     url: 'http://127.0.0.1:4179',
     reuseExistingServer: false,
     timeout: 15_000,
